@@ -104,10 +104,21 @@ func Lclearxattrs(path string) error {
 		return errors.Wrap(err, "lclearxattrs: get list")
 	}
 	for _, name := range names {
+
+		// Do not try to remove the NFS ACL attribute
+		// Would lead to EIO otherwise
+		if name == "system.nfs4_acl" {
+			continue
+		}
+
 		if err := unix.Lremovexattr(path, name); err != nil {
 			// Ignore permission errors, because hitting a permission error
 			// means that it's a security.* xattr label or something similar.
 			if os.IsPermission(errors.Cause(err)) {
+				continue
+			}
+			// On NFS altering extended attrs may not be supported
+			if errors.Cause(err).Error() == "operation not supported" {
 				continue
 			}
 			return errors.Wrap(err, "lclearxattrs: remove xattr")

@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"strings"
 
 	"github.com/openSUSE/umoci/pkg/system"
 	"github.com/vbatts/go-mtree"
@@ -130,7 +131,16 @@ func (fs osFsEval) Lremovexattr(path, name string) error {
 
 // Lsetxattr is equivalent to system.Lsetxattr
 func (fs osFsEval) Lsetxattr(path, name string, value []byte, flags int) error {
-	return unix.Lsetxattr(path, name, value, flags)
+	err := unix.Lsetxattr(path, name, value, flags)
+
+	if err != nil{
+		//This is the case for NFS where extended file attrs are not supported
+		if strings.Contains(err.Error(), "operation not supported") {
+			return nil
+		}
+	}
+
+	return err
 }
 
 // Lgetxattr is equivalent to system.Lgetxattr
