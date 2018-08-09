@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"strings"
 
 	"github.com/openSUSE/umoci/pkg/unpriv"
 	"github.com/vbatts/go-mtree"
@@ -124,7 +125,16 @@ func (fs unprivFsEval) Lremovexattr(path, name string) error {
 
 // Lsetxattr is equivalent to unpriv.Lsetxattr
 func (fs unprivFsEval) Lsetxattr(path, name string, value []byte, flags int) error {
-	return unpriv.Lsetxattr(path, name, value, flags)
+	err := unpriv.Lsetxattr(path, name, value, flags)
+
+	if err != nil{
+		//This is the case for NFS where extended file attrs are not supported
+		if strings.Contains(err.Error(), "operation not supported") {
+			return nil
+		}
+	}
+
+	return err
 }
 
 // Lgetxattr is equivalent to unpriv.Lgetxattr

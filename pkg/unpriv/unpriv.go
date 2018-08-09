@@ -514,6 +514,13 @@ func Lclearxattrs(path string) error {
 			return err
 		}
 		for _, name := range names {
+
+			// Do not try to remove the NFS ACL attribute
+			// Would lead to EIO otherwise
+			if name == "system.nfs4_acl" {
+				continue
+			}
+
 			if err := Lremovexattr(path, name); err != nil {
 				// SELinux won't let you change security.selinux (for obvious
 				// security reasons), so we don't clear xattrs if attempting to
@@ -522,6 +529,12 @@ func Lclearxattrs(path string) error {
 				if os.IsPermission(errors.Cause(err)) {
 					continue
 				}
+
+				// On NFS altering extended attrs may not be supported
+				if errors.Cause(err).Error() == "operation not supported" {
+					continue
+				}
+
 				return err
 			}
 		}
